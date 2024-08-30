@@ -1,5 +1,5 @@
 # Use a base image
-FROM cgr.dev/chainguard/nginx:latest
+FROM nginx:latest
 
 # Copy the contents of the local 'webapp' directory into the NGINX HTML directory
 COPY ./webapp /usr/share/nginx/html
