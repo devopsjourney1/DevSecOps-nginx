@@ -1,5 +1,5 @@
 # Use a base image
-FROM nginx:latest
+FROM nginx:1.22.1
 
 # Copy the contents of the local 'webapp' directory into the NGINX HTML directory
 COPY ./webapp /usr/share/nginx/html

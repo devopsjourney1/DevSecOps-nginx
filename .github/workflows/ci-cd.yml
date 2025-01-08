@@ -1,0 +1,66 @@
+name: CI/CD Pipeline with Security Scans
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-scan:
+    name: Build and Scan
+    runs-on: ubuntu-latest
+
+    steps:
+    ### Step 1: Check out code
+    - name: Checkout Code
+      uses: actions/checkout@v3
+
+    ### Step 2: Set up Docker
+    - name: Set up Docker
+      uses: docker/setup-buildx-action@v2
+
+    ### Step 3: Build Docker Image
+    - name: Build Docker Image
+      run: |
+        docker build -t my-app:latest .
+
+    ### Step 4: Scan Docker Image for Vulnerabilities
+    - name: Scan Image with Trivy
+      uses: aquasecurity/trivy-action@v0.11.0
+      with:
+        image-ref: my-app:latest
+        format: table
+        exit-code: 0
+        severity: HIGH,CRITICAL
+      continue-on-error: true
+
+    ### Step 5: Run SAST Scan
+    - name: Run SAST (CodeQL Analysis)
+      uses: github/codeql-action/analyze@v2
+      with:
+        category: security
+
+    ### Step 6: Push Docker Image to Registry
+    - name: Log in to DockerHub
+      uses: docker/login-action@v2
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+    - name: Push Docker Image
+      run: |
+        docker tag my-app:latest my-dockerhub-repo/my-app:latest
+        docker push my-dockerhub-repo/my-app:latest
+
+    ### Step 7: Run DAST Scan
+    - name: DAST Scan with OWASP ZAP
+      run: |
+        docker run -t owasp/zap2docker-stable zap-baseline.py -t http://my-app-url -r zap-report.html
+
+    ### Step 8: Upload Results
+    - name: Upload SAST and DAST Reports
+      uses: actions/upload-artifact@v3
+      with:
+        name: security-reports
+        path: |
+          trivy-results.txt
+          zap-report.html
